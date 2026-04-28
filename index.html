@@ -78,7 +78,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <script>
-        // DOM elements
+        // DOM
         const authBox = document.getElementById("authBox");
         const dashboard = document.getElementById("dashboard");
         const fileInput = document.getElementById("fileInput");
@@ -86,9 +86,9 @@
         const status = document.getElementById("status");
         const aiResult = document.getElementById("aiResult");
 
-        // Firebase config
+        // Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyDMNcZl92ji_R2Wry4Rty-Telh-8MIjvAg",
+            apiKey: "YOUR_FIREBASE_KEY",
             authDomain: "neurovault-cb7cf.firebaseapp.com",
             projectId: "neurovault-cb7cf",
             databaseURL: "https://neurovault-cb7cf-default-rtdb.firebaseio.com/",
@@ -112,27 +112,28 @@
 
         // LOGIN
         function login() {
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
 
-    const email = emailInput.value;
-    const password = passwordInput.value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => showDashboard())
+                .catch(err => alert(err.message));
+        }
 
-    auth.signInWithEmailAndPassword(email, password)
-        .then(() => showDashboard())
-        .catch(err => alert(err.message));
-}
         function showDashboard() {
             authBox.style.display = "none";
             dashboard.style.display = "block";
-            listFiles();
+
+            const user = auth.currentUser;
+            if (user) listFiles();
         }
 
         function uploadFile() {
             const file = fileInput.files[0];
-            if (!file) return alert("Select a file");
-
             const user = auth.currentUser;
+
+            if (!file) return alert("Select a file");
+            if (!user) return alert("User not logged in");
 
             db.ref("files/").push({
                 name: file.name,
@@ -145,6 +146,7 @@
 
         function listFiles() {
             const user = auth.currentUser;
+            if (!user) return;
 
             db.ref("files/").on("value", snapshot => {
                 fileList.innerHTML = "";
@@ -152,7 +154,7 @@
                 snapshot.forEach(child => {
                     const data = child.val();
 
-                    if (data.user === user.email) {
+                    if (user && data.user === user.email) {
                         const li = document.createElement("li");
                         li.textContent = data.name;
                         fileList.appendChild(li);
@@ -165,11 +167,14 @@
             status.innerText = "⚠️ Unsafe environment detected!";
         }
 
+        // AI
         async function analyzeRisk() {
-            const apiKey = "AIzaSyAmvTogJs1CRqSZS4O45S_JKiyytF64MSU";
+            const apiKey = "YOUR_GEMINI_API_KEY";
 
             const user = auth.currentUser;
-            const prompt = `Analyze security risks for ${user?.email || "user"}`;
+            if (!user) return (aiResult.innerText = "Login required");
+
+            const prompt = `Analyze security risks for ${user.email}`;
 
             try {
                 const res = await fetch(
@@ -184,13 +189,20 @@
                 );
 
                 const data = await res.json();
+                console.log(data);
+
+                if (data.error) {
+                    aiResult.innerText = "API ERROR: " + data.error.message;
+                    return;
+                }
 
                 aiResult.innerText =
                     data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-                    "No response from AI.";
+                    "No AI response received.";
 
             } catch (err) {
-                aiResult.innerText = "AI error.";
+                console.log(err);
+                aiResult.innerText = "Network error";
             }
         }
 
@@ -198,9 +210,16 @@
             auth.signOut().then(() => location.reload());
         }
 
+        // AUTH STATE FIX
         auth.onAuthStateChanged(user => {
-            if (user) showDashboard();
+            if (user) {
+                showDashboard();
+            } else {
+                authBox.style.display = "block";
+                dashboard.style.display = "none";
+            }
         });
+
     </script>
 
 </body>
