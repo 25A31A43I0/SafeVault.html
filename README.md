@@ -19,7 +19,7 @@ Users can securely log in and manage their digital assets. The system monitors i
 - Google Gemini API (AI-based analysis)
 
 ## 🌐 Live Demo
-[Click here to view the project](https://25a31a43i0.github.io/safevault-ai/)
+https://25a31a43i0.github.io/SafeVault.html/
 
 ## 💡 Future Enhancements
 - Full file encryption & cloud storage
